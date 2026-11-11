@@ -6,6 +6,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from studio_sync import make_plan, stage, save_csv, plan_paths, load_csv
 
+from helpers import expanded, write_snapshot
+
 FIELDS = ["pool", "index", "team", "first", "last", "position", "birth_date", "speed", "depth_rank"]
 
 
@@ -32,11 +34,10 @@ class RosterWireTests(unittest.TestCase):
     def test_exact_name_dob_and_proposals(self):
         proposed, reviews, links = make_plan(game(), nfl())
         self.assertEqual(len(links), 4)
-        self.assertFalse(reviews)
+        self.assertEqual(len(reviews), 1)
         self.assertEqual(
             [(p["action"], p["player"], p["to_team"]) for p in proposed],
-            [("MOVE", "T.J. Moss", "MIA"), ("RELEASE", "Alice Example", "free_agent"),
-             ("SIGN", "Bobby Example", "BUF")],
+            [("MOVE", "T.J. Moss", "MIA"), ("SIGN", "Bobby Example", "BUF")],
         )
         self.assertTrue(all(p["approval"] == "PENDING" for p in proposed))
 
@@ -49,15 +50,15 @@ class RosterWireTests(unittest.TestCase):
         source = nfl()
         source[-1]["team"] = "MIA"
         proposed, reviews, _ = make_plan(game(), source)
-        self.assertEqual(len(proposed), 3)
+        self.assertEqual(len(proposed), 2)
         self.assertTrue(any("reserve/practice" in x["reason"] for x in reviews))
 
     def test_staging_modifies_only_team(self):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
             src, feed = d / "game.csv", d / "nfl.csv"
-            save_csv(src, game(), FIELDS)
-            save_csv(feed, nfl(), ["gsis_id", "full_name", "birth_date", "team", "status"])
+            save_csv(src, *expanded(game(), FIELDS))
+            write_snapshot(feed, nfl())
             plan_paths(src, feed, None, d / "plan")
             changes, fields = load_csv(d / "plan/proposed_transactions.csv")
             changes[0]["approval"] = "APPROVED"
@@ -76,15 +77,15 @@ class RosterWireTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
             src, feed = d / "game.csv", d / "nfl.csv"
-            save_csv(src, game(), FIELDS)
-            save_csv(feed, nfl(), ["gsis_id", "full_name", "birth_date", "team", "status"])
+            save_csv(src, *expanded(game(), FIELDS))
+            write_snapshot(feed, nfl())
             plan_paths(src, feed, None, d / "plan")
             changes, fields = load_csv(d / "plan/proposed_transactions.csv")
             changes[0]["approval"] = "APPROVED"
             save_csv(d / "approved.csv", changes, fields)
             revised = game()
             revised[0]["speed"] = "88"
-            save_csv(src, revised, FIELDS)
+            save_csv(src, *expanded(revised, FIELDS))
             with self.assertRaisesRegex(ValueError, "changed after planning"):
                 stage(src, d / "approved.csv", d / "staged.csv", d / "plan/summary.json")
 
@@ -93,8 +94,8 @@ class RosterWireTests(unittest.TestCase):
         players.append(dict(zip(FIELDS, ["primary", "99", "BRP", "Darius", "Slayton", "WR", "'1997-01-12", "80", "0"])))
         players.append(dict(zip(FIELDS, ["secondary", "0", "pool", "", "", "QB", "", "0", "0"])))
         proposals, reviews, links = make_plan(players, nfl())
-        self.assertEqual(len(proposals), 3)
-        self.assertFalse(reviews)
+        self.assertEqual(len(proposals), 2)
+        self.assertEqual(len(reviews), 1)
         self.assertEqual(len(links), 4)
 
     def test_missing_birth_date_is_not_auto_matched(self):

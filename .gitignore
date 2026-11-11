@@ -15,6 +15,14 @@ input/
 data/
 output/
 snapshots/
+private/
+*.csv
+*.xlsx
+*.sav
+*.save
+*.iso
+*.tmp
+!.gitkeep
 *.meta.json
 *.manifest.json
 *.dat
