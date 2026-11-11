@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Local NFL/Mod Studio data, output, reports and crosswalks
+roster.csv
+roster*.csv
+input/
+data/
+output/
+snapshots/
+private/
+*.csv
+*.xlsx
+*.sav
+*.save
+*.iso
+*.tmp
+!.gitkeep
+*.meta.json
+*.manifest.json
+*.dat
+*.DAT
+*.bin
+*.img
+*.max
+*.psu
+*.ps2
+*.zip
+
+# Local IDE state and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
