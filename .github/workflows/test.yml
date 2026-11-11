@@ -1,0 +1,19 @@
+name: Python tests
+on:
+  pull_request:
+  push:
+    branches: [main, "feat/**"]
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Verify source compiles
+        run: python -m py_compile studio_sync.py
+      - name: Run isolated tests
+        run: python -m unittest discover -s tests -v
